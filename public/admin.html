@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MindMitra - Admin Dashboard</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0F172A; color: #F1F5F9; min-height: 100vh;
+        }
+        
+        .login {
+            display: flex; align-items: center; justify-content: center;
+            min-height: 100vh; padding: 20px;
+        }
+        
+        .login-box {
+            background: #1E293B; padding: 40px; border-radius: 16px;
+            max-width: 400px; width: 100%; box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        
+        .login-box h1 {
+            font-size: 28px; margin-bottom: 24px;
+            background: linear-gradient(135deg, #3B82F6, #10B981);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        
+        .login-box input {
+            width: 100%; padding: 14px; background: #0F172A;
+            border: 2px solid #334155; border-radius: 8px;
+            color: #F1F5F9; font-size: 16px; margin-bottom: 16px;
+        }
+        
+        .login-box input:focus {
+            outline: none; border-color: #3B82F6;
+        }
+        
+        .login-box button {
+            width: 100%; padding: 14px; background: linear-gradient(135deg, #3B82F6, #2563EB);
+            border: none; border-radius: 8px; color: white;
+            font-size: 16px; font-weight: 600; cursor: pointer;
+        }
+        
+        .error { color: #EF4444; margin-top: 12px; display: none; }
+        
+        .dashboard {
+            display: none; padding: 20px;
+        }
+        
+        .dashboard.active { display: block; }
+        
+        .dash-header {
+            background: #1E293B; padding: 20px; border-radius: 12px;
+            margin-bottom: 24px; display: flex; justify-content: space-between;
+            align-items: center;
+        }
+        
+        .dash-header h1 {
+            font-size: 32px;
+            background: linear-gradient(135deg, #3B82F6, #10B981);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        
+        .logout {
+            padding: 10px 20px; background: #EF4444;
+            border: none; border-radius: 8px; color: white;
+            cursor: pointer; font-weight: 600;
+        }
+        
+        .stats {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px; margin-bottom: 24px;
+        }
+        
+        .stat {
+            background: #1E293B; padding: 24px; border-radius: 12px;
+            border: 2px solid #334155;
+        }
+        
+        .stat h3 {
+            font-size: 14px; color: #94A3B8; margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        
+        .stat-value {
+            font-size: 36px; font-weight: 700;
+        }
+        
+        .stat.critical .stat-value { color: #EF4444; }
+        .stat.warning .stat-value { color: #F59E0B; }
+        .stat.success .stat-value { color: #10B981; }
+        .stat.primary .stat-value { color: #3B82F6; }
+        
+        .chart {
+            background: #1E293B; padding: 24px; border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        
+        .chart h3 { margin-bottom: 20px; }
+        
+        .bar {
+            margin-bottom: 16px;
+        }
+        
+        .bar-label {
+            display: flex; justify-content: space-between;
+            margin-bottom: 8px; font-size: 14px;
+        }
+        
+        .bar-track {
+            height: 32px; background: #0F172A; border-radius: 8px; overflow: hidden;
+        }
+        
+        .bar-fill {
+            height: 100%; display: flex; align-items: center;
+            padding-left: 12px; font-weight: 600; transition: width 1s;
+        }
+        
+        .bar-fill.critical { background: #EF4444; }
+        .bar-fill.high { background: #F59E0B; }
+        .bar-fill.moderate { background: #3B82F6; }
+        .bar-fill.low { background: #10B981; }
+        .bar-fill.normal { background: #64748B; }
+        
+        .sessions {
+            background: #1E293B; padding: 24px; border-radius: 12px;
+        }
+        
+        .session {
+            padding: 16px; background: #0F172A; border-radius: 8px;
+            margin-bottom: 12px; display: flex; justify-content: space-between;
+            border-left: 4px solid #3B82F6;
+        }
+        
+        .session.critical { border-left-color: #EF4444; }
+        .session.high { border-left-color: #F59E0B; }
+        
+        .badge {
+            padding: 4px 12px; border-radius: 12px;
+            font-size: 12px; font-weight: 600; text-transform: uppercase;
+        }
+        
+        .badge.critical { background: rgba(239,68,68,0.2); color: #EF4444; }
+        .badge.high { background: rgba(245,158,11,0.2); color: #F59E0B; }
+        .badge.moderate { background: rgba(59,130,246,0.2); color: #3B82F6; }
+        .badge.low { background: rgba(16,185,129,0.2); color: #10B981; }
+        .badge.normal { background: rgba(100,116,139,0.2); color: #94A3B8; }
+    </style>
+</head>
+<body>
+    <!-- Login -->
+    <div class="login" id="login">
+        <div class="login-box">
+            <h1>🧠 MindMitra Admin</h1>
+            <input type="password" id="password" placeholder="Admin password">
+            <button onclick="login()">Login</button>
+            <div class="error" id="error">Invalid password</div>
+        </div>
+    </div>
+
+    <!-- Dashboard -->
+    <div class="dashboard" id="dashboard">
+        <div class="dash-header">
+            <h1>📊 Analytics Dashboard</h1>
+            <button class="logout" onclick="logout()">Logout</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat primary">
+                <h3>Total Sessions</h3>
+                <div class="stat-value" id="total">0</div>
+            </div>
+            <div class="stat success">
+                <h3>Active Now</h3>
+                <div class="stat-value" id="active">0</div>
+            </div>
+            <div class="stat critical">
+                <h3>Critical Alerts</h3>
+                <div class="stat-value" id="critical">0</div>
+            </div>
+            <div class="stat warning">
+                <h3>High Risk</h3>
+                <div class="stat-value" id="high">0</div>
+            </div>
+        </div>
+
+        <div class="chart">
+            <h3>Risk Distribution</h3>
+            <div id="risks"></div>
+        </div>
+
+        <div class="sessions">
+            <h3>Recent Sessions</h3>
+            <div id="sessions"></div>
+        </div>
+    </div>
+
+    <script>
+        function login() {
+            const pwd = document.getElementById('password').value;
+            
+            fetch('/api/admin/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ password: pwd })
+            })
+            .then(r => r.json())
+            .then(d => {
+                if (d.success) {
+                    document.getElementById('login').style.display = 'none';
+                    document.getElementById('dashboard').classList.add('active');
+                    loadData();
+                    setInterval(loadData, 30000);
+                } else {
+                    document.getElementById('error').style.display = 'block';
+                }
+            });
+        }
+
+        function logout() {
+            location.reload();
+        }
+
+        document.getElementById('password').addEventListener('keypress', e => {
+            if (e.key === 'Enter') login();
+        });
+
+        function loadData() {
+            fetch('/api/admin/analytics')
+                .then(r => r.json())
+                .then(d => {
+                    if (!d.success) return;
+                    
+                    const a = d.analytics;
+                    
+                    document.getElementById('total').textContent = a.totalSessions;
+                    document.getElementById('active').textContent = a.activeSessions;
+                    document.getElementById('critical').textContent = a.riskCounts.CRITICAL;
+                    document.getElementById('high').textContent = a.riskCounts.HIGH;
+                    
+                    // Risk chart
+                    const risks = document.getElementById('risks');
+                    const total = Object.values(a.riskCounts).reduce((sum, v) => sum + v, 0) || 1;
+                    
+                    risks.innerHTML = '';
+                    const levels = [
+                        { key: 'CRITICAL', label: 'Critical', class: 'critical' },
+                        { key: 'HIGH', label: 'High Risk', class: 'high' },
+                        { key: 'MODERATE', label: 'Moderate', class: 'moderate' },
+                        { key: 'LOW', label: 'Low Risk', class: 'low' },
+                        { key: 'NORMAL', label: 'Normal', class: 'normal' }
+                    ];
+                    
+                    levels.forEach(l => {
+                        const count = a.riskCounts[l.key] || 0;
+                        const pct = Math.round((count / total) * 100);
+                        
+                        risks.innerHTML += `
+                            <div class="bar">
+                                <div class="bar-label">
+                                    <strong>${l.label}</strong>
+                                    <span>${count} sessions (${pct}%)</span>
+                                </div>
+                                <div class="bar-track">
+                                    <div class="bar-fill ${l.class}" style="width: ${pct}%">
+                                        ${count > 0 ? count : ''}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                    
+                    // Recent sessions
+                    const sessions = document.getElementById('sessions');
+                    sessions.innerHTML = '';
+                    
+                    if (a.recentSessions.length === 0) {
+                        sessions.innerHTML = '<p style="text-align:center;color:#64748B;">No sessions yet</p>';
+                        return;
+                    }
+                    
+                    a.recentSessions.forEach(s => {
+                        const time = new Date(s.lastActive).toLocaleString();
+                        sessions.innerHTML += `
+                            <div class="session ${s.riskLevel.toLowerCase()}">
+                                <div>
+                                    <span class="badge ${s.riskLevel.toLowerCase()}">${s.riskLevel}</span>
+                                    <div style="margin-top:8px;font-size:13px;color:#94A3B8;">
+                                        ${s.messageCount} messages · ${time}
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                });
+        }
+    </script>
+</body>
+</html>
