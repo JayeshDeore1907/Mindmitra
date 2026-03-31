@@ -25,9 +25,8 @@ const analytics = {
 async function callGemini(userMessage, analysis = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
 
-  const endpoint =
-    "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=AIzaSyD45mg8iBb_SSvINLGQzHOg0UtjBZuOvtQ"+
-    apiKey;
+  const endpoint = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
+
 
   const systemPrompt = `You are MindMitra — a calm, friendly, practical college companion.
 
@@ -37,22 +36,22 @@ No blog-style answers.
 Be short, direct, and natural.
 Answer exactly what the user says.`;
 
-  const body = {
-    contents: [
-      {
-        role: "system",
-        parts: [{ text: systemPrompt }]
-      },
-      {
-        role: "user",
-        parts: [{ text: userMessage }]
-      }
-    ],
-    generationConfig: {
-      temperature: 0.4,
-      maxOutputTokens: 300
+
+
+const body = {
+  systemInstruction: {
+    parts: [{ text: systemPrompt }]
+  },
+  contents: [
+    {
+      parts: [{ text: userMessage }]
     }
-  };
+  ],
+  generationConfig: {
+    temperature: 0.4,
+    maxOutputTokens: 300
+  }
+};;
 
   try {
     const response = await fetch(endpoint, {
