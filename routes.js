@@ -26,7 +26,7 @@ async function callGemini(userMessage, analysis = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
 
   const endpoint =
-    "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" +
+    "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=AIzaSyD45mg8iBb_SSvINLGQzHOg0UtjBZuOvtQ"+
     apiKey;
 
   const systemPrompt = `You are MindMitra — a calm, friendly, practical college companion.
