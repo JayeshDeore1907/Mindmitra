@@ -37,16 +37,19 @@ No blog-style answers.
 Be short, direct, and natural.
 Answer exactly what the user says.`;
 
-  // ✅ FINAL CORRECT BODY (FIXED FOR HTTP 400)
+  // ✅ FINAL FIX: system prompt merged into user text
+  const finalPrompt = `${systemPrompt}
+
+User message: ${userMessage}
+
+Reply naturally as MindMitra.`;
+
   const body = {
-    systemInstruction: {
-      role: "system",
-      parts: [{ text: systemPrompt }]
-    },
     contents: [
       {
-        role: "user",
-        parts: [{ text: userMessage }]
+        parts: [
+          { text: finalPrompt }
+        ]
       }
     ],
     generationConfig: {
@@ -64,7 +67,7 @@ Answer exactly what the user says.`;
       body: JSON.stringify(body)
     });
 
-    // ✅ FULL ERROR LOG
+    // ✅ Full error logging
     if (!response.ok) {
       const errText = await response.text();
       console.error("FULL GEMINI ERROR RESPONSE:\n", errText);
@@ -76,12 +79,14 @@ Answer exactly what the user says.`;
     console.log("RAW GEMINI RESPONSE:\n", JSON.stringify(data, null, 2));
 
     if (!data.candidates || data.candidates.length === 0) {
+      console.error("No candidates returned:", data);
       return "I'm here to help. Can you rephrase that?";
     }
 
     const parts = data.candidates[0]?.content?.parts;
 
     if (!Array.isArray(parts)) {
+      console.error("Invalid response structure:", data);
       return "Something went wrong. Please try again.";
     }
 
@@ -135,10 +140,13 @@ router.post('/chat', async (req, res) => {
       session.highestRisk = analysis.riskLevel;
     }
 
-    const existingIndex = analytics.recentSessions.findIndex(s => s.sessionId === sessionId);
+    const existingIndex = analytics.recentSessions.findIndex(
+      s => s.sessionId === (sessionId?.substring(0, 8) + '...')
+    );
 
+    const safeSessionId = (sessionId || 'anonymous-session');
     const sessionData = {
-      sessionId: sessionId.substring(0, 8) + '...',
+      sessionId: safeSessionId.substring(0, 8) + '...',
       riskLevel: session.highestRisk,
       messageCount: session.messageCount,
       lastActive: session.lastActive
