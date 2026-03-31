@@ -1,6 +1,6 @@
 // ==================== API ROUTES ====================
 import express from 'express';
-import { analyzeMessage, getSystemPrompt } from './analysis.js';
+import { analyzeMessage } from './analysis.js';
 
 const router = express.Router();
 
@@ -18,16 +18,16 @@ const analytics = {
   recentSessions: []
 };
 
-
-
-
 // ==================== GEMINI API ====================
 async function callGemini(userMessage, analysis = {}) {
   const apiKey = process.env.GEMINI_API_KEY;
 
-  const endpoint =
-    "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" +
-    apiKey;
+  if (!apiKey) {
+    console.error("Missing GEMINI_API_KEY");
+    return "Server configuration error. Please try later.";
+  }
+
+  const endpoint = `https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=${apiKey}`;
 
   const systemPrompt = `You are MindMitra — a calm, friendly, practical college companion.
 
@@ -37,14 +37,13 @@ No blog-style answers.
 Be short, direct, and natural.
 Answer exactly what the user says.`;
 
+  // ✅ FIXED Gemini request format
   const body = {
+    systemInstruction: {
+      parts: [{ text: systemPrompt }]
+    },
     contents: [
       {
-        role: "system",
-        parts: [{ text: systemPrompt }]
-      },
-      {
-        role: "user",
         parts: [{ text: userMessage }]
       }
     ],
@@ -55,21 +54,36 @@ Answer exactly what the user says.`;
   };
 
   try {
+    console.log("Calling Gemini API...");
+
     const response = await fetch(endpoint, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body)
     });
 
+    // ✅ Handle HTTP errors
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error("Gemini HTTP Error:", errText);
+      throw new Error(`HTTP ${response.status}`);
+    }
+
     const data = await response.json();
 
-    // 🔍 HARD DEBUG (VERY IMPORTANT)
     console.log("RAW GEMINI RESPONSE:\n", JSON.stringify(data, null, 2));
 
-    const parts = data?.candidates?.[0]?.content?.parts;
+    // ✅ Handle empty response
+    if (!data.candidates || data.candidates.length === 0) {
+      console.error("No candidates returned:", data);
+      return "I'm here to help. Can you rephrase that?";
+    }
+
+    const parts = data.candidates[0]?.content?.parts;
 
     if (!Array.isArray(parts)) {
-      throw new Error("Invalid Gemini response structure");
+      console.error("Invalid response structure:", data);
+      return "Something went wrong. Please try again.";
     }
 
     const text = parts
@@ -79,7 +93,7 @@ Answer exactly what the user says.`;
       .trim();
 
     if (!text) {
-      throw new Error("Empty Gemini text response");
+      return "I didn't understand that clearly. Try again?";
     }
 
     return text;
@@ -90,18 +104,17 @@ Answer exactly what the user says.`;
   }
 }
 
-
 // ==================== ROUTES ====================
 
 // POST /api/chat
 router.post('/chat', async (req, res) => {
   try {
     const { message, sessionId } = req.body;
-    
+
     if (!message) {
       return res.status(400).json({ error: 'Message required' });
     }
-    
+
     // Find or create session
     let session = sessions.find(s => s.id === sessionId);
     if (!session) {
@@ -114,53 +127,49 @@ router.post('/chat', async (req, res) => {
       sessions.push(session);
       analytics.totalSessions++;
     }
-    
-    // Analyze message (NOT stored)
+
+    // Analyze message
     const analysis = analyzeMessage(message);
-    
+
     // Update analytics
     analytics.riskCounts[analysis.riskLevel]++;
     session.messageCount++;
     session.lastActive = new Date();
-    
+
     // Update highest risk
     const riskPriority = ['CRITICAL', 'HIGH', 'MODERATE', 'LOW', 'NORMAL'];
     if (riskPriority.indexOf(analysis.riskLevel) < riskPriority.indexOf(session.highestRisk)) {
       session.highestRisk = analysis.riskLevel;
     }
-    
-    // Track recent sessions (anonymized)
+
+    // Track recent sessions
     const existingIndex = analytics.recentSessions.findIndex(s => s.sessionId === sessionId);
+
+    const sessionData = {
+      sessionId: sessionId.substring(0, 8) + '...',
+      riskLevel: session.highestRisk,
+      messageCount: session.messageCount,
+      lastActive: session.lastActive
+    };
+
     if (existingIndex >= 0) {
-      analytics.recentSessions[existingIndex] = {
-        sessionId: sessionId.substring(0, 8) + '...',
-        riskLevel: session.highestRisk,
-        messageCount: session.messageCount,
-        lastActive: session.lastActive
-      };
+      analytics.recentSessions[existingIndex] = sessionData;
     } else {
-      analytics.recentSessions.unshift({
-        sessionId: sessionId.substring(0, 8) + '...',
-        riskLevel: session.highestRisk,
-        messageCount: session.messageCount,
-        lastActive: session.lastActive
-      });
-      
-      // Keep only 20 recent
+      analytics.recentSessions.unshift(sessionData);
       if (analytics.recentSessions.length > 20) {
         analytics.recentSessions.pop();
       }
     }
-    
+
     // Get AI response
     const aiResponse = await callGemini(message, analysis);
-    
+
     res.json({
       success: true,
       response: aiResponse,
       crisisDetected: analysis.crisisDetected
     });
-    
+
   } catch (error) {
     console.error('Chat error:', error);
     res.status(500).json({
@@ -173,7 +182,7 @@ router.post('/chat', async (req, res) => {
 // POST /api/admin/login
 router.post('/admin/login', (req, res) => {
   const { password } = req.body;
-  
+
   if (password === process.env.ADMIN_PASSWORD) {
     res.json({ success: true });
   } else {
