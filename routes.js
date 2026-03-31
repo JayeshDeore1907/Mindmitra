@@ -37,13 +37,15 @@ No blog-style answers.
 Be short, direct, and natural.
 Answer exactly what the user says.`;
 
-  // ✅ FIXED Gemini request format
+  // ✅ FINAL CORRECT BODY (FIXED FOR HTTP 400)
   const body = {
     systemInstruction: {
+      role: "system",
       parts: [{ text: systemPrompt }]
     },
     contents: [
       {
+        role: "user",
         parts: [{ text: userMessage }]
       }
     ],
@@ -62,10 +64,10 @@ Answer exactly what the user says.`;
       body: JSON.stringify(body)
     });
 
-    // ✅ Handle HTTP errors
+    // ✅ FULL ERROR LOG
     if (!response.ok) {
       const errText = await response.text();
-      console.error("Gemini HTTP Error:", errText);
+      console.error("FULL GEMINI ERROR RESPONSE:\n", errText);
       throw new Error(`HTTP ${response.status}`);
     }
 
@@ -73,16 +75,13 @@ Answer exactly what the user says.`;
 
     console.log("RAW GEMINI RESPONSE:\n", JSON.stringify(data, null, 2));
 
-    // ✅ Handle empty response
     if (!data.candidates || data.candidates.length === 0) {
-      console.error("No candidates returned:", data);
       return "I'm here to help. Can you rephrase that?";
     }
 
     const parts = data.candidates[0]?.content?.parts;
 
     if (!Array.isArray(parts)) {
-      console.error("Invalid response structure:", data);
       return "Something went wrong. Please try again.";
     }
 
@@ -92,11 +91,7 @@ Answer exactly what the user says.`;
       .join("\n")
       .trim();
 
-    if (!text) {
-      return "I didn't understand that clearly. Try again?";
-    }
-
-    return text;
+    return text || "I didn't understand that clearly. Try again?";
 
   } catch (err) {
     console.error("Gemini Error:", err.message);
@@ -115,8 +110,8 @@ router.post('/chat', async (req, res) => {
       return res.status(400).json({ error: 'Message required' });
     }
 
-    // Find or create session
     let session = sessions.find(s => s.id === sessionId);
+
     if (!session) {
       session = {
         id: sessionId,
@@ -128,21 +123,18 @@ router.post('/chat', async (req, res) => {
       analytics.totalSessions++;
     }
 
-    // Analyze message
     const analysis = analyzeMessage(message);
 
-    // Update analytics
     analytics.riskCounts[analysis.riskLevel]++;
     session.messageCount++;
     session.lastActive = new Date();
 
-    // Update highest risk
     const riskPriority = ['CRITICAL', 'HIGH', 'MODERATE', 'LOW', 'NORMAL'];
+
     if (riskPriority.indexOf(analysis.riskLevel) < riskPriority.indexOf(session.highestRisk)) {
       session.highestRisk = analysis.riskLevel;
     }
 
-    // Track recent sessions
     const existingIndex = analytics.recentSessions.findIndex(s => s.sessionId === sessionId);
 
     const sessionData = {
@@ -161,7 +153,6 @@ router.post('/chat', async (req, res) => {
       }
     }
 
-    // Get AI response
     const aiResponse = await callGemini(message, analysis);
 
     res.json({
