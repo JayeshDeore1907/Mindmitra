@@ -99,35 +99,6 @@ Messages are analyzed in background using keyword detection:
 
 ---
 
-## 🎓 For College Submission
-
-### Key Highlights
-
-✅ **Full-Stack Project:** Node.js backend + Modern frontend  
-✅ **AI Integration:** Google Gemini API  
-✅ **Real-World Problem:** Student mental health crisis  
-✅ **Production Quality:** Clean code, professional UI  
-✅ **Ethical Design:** Privacy-first, crisis detection  
-✅ **Zero Dependencies:** No database required  
-
-### Viva Questions & Answers
-
-**Q: Why Gemini instead of ChatGPT?**  
-A: Free tier, good Hindi support, simple API.
-
-**Q: Why no database?**  
-A: Simplifies deployment, ensures privacy, suitable for demo/prototype.
-
-**Q: How accurate is crisis detection?**  
-A: ~90% keyword-based detection, prioritizes false positives for safety.
-
-**Q: Can this replace counselors?**  
-A: No. It's a first-line support tool, always directs to professionals when needed.
-
-**Q: How do you ensure privacy?**  
-A: No login, no cookies, no message storage, in-memory analytics only.
-
----
 
 ## 💻 API Endpoints
 
